@@ -1,93 +1,102 @@
 import express from "express";
-import puppeteer from "puppeteer";
 import axe from "axe-core";
 import Scan from "../models/Scan.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import puppeteer from "puppeteer";
+
+
 
 const router = express.Router();
-
 router.post("/", authMiddleware, async (req, res) => {
+  let browser;
+
   try {
     const { url } = req.body;
 
     if (!url) {
       return res.status(400).json({ message: "URL is required" });
     }
-
-    // launch browser
-    const browser = await puppeteer.launch();
+console.log("Launching browser...");
+   browser = await puppeteer.launch({
+  headless: true,
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+});
+console.log("Browser launched");
     const page = await browser.newPage();
 
-    // open website
-    await page.goto(url, { waitUntil: "load" });
+    await page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
 
-    // inject axe
     await page.addScriptTag({
       content: axe.source,
     });
 
-    // run accessibility scan
     const results = await page.evaluate(async () => {
       return await axe.run();
     });
-// format results
-const formattedIssues = results.violations.map((item) => {
-  let severity = "Low";
 
-  if (item.impact === "critical" || item.impact === "serious") {
-    severity = "High";
-  } else if (item.impact === "moderate") {
-    severity = "Medium";
-  }
+    // format results
+    const formattedIssues = results.violations.map((item) => {
+      let severity = "Low";
 
-  return {
-    issue: item.id,
-    description: item.description,
-    severity,
-    help: item.help,
-    helpUrl: item.helpUrl,
-  };
-});
-    await browser.close();
+      if (item.impact === "critical" || item.impact === "serious") {
+        severity = "High";
+      } else if (item.impact === "moderate") {
+        severity = "Medium";
+      }
 
-// summary counts
-const totalIssues = formattedIssues.length;
+      return {
+        issue: item.id,
+        description: item.description,
+        severity,
+        help: item.help,
+        helpUrl: item.helpUrl,
+      };
+    });
 
-const high = formattedIssues.filter(i => i.severity === "High").length;
-const medium = formattedIssues.filter(i => i.severity === "Medium").length;
-const low = formattedIssues.filter(i => i.severity === "Low").length;
+    const totalIssues = formattedIssues.length;
 
-// simple score calculation
-const score = Math.max(0, 100 - (high * 5 + medium * 3 + low * 1));
+    const high = formattedIssues.filter(i => i.severity === "High").length;
+    const medium = formattedIssues.filter(i => i.severity === "Medium").length;
+    const low = formattedIssues.filter(i => i.severity === "Low").length;
 
-// save to DB
-const newScan = new Scan({
-  userId: req.user.id,
-  url,
-  results: {
-    issues: formattedIssues,
-    summary: {
-      totalIssues,
-      high,
-      medium,
-      low,
-      score,
-    }
-  },
-});
+    const score = Math.max(0, 100 - (high * 5 + medium * 3 + low * 1));
 
-await newScan.save();
+    const newScan = new Scan({
+      userId: req.user.id,
+      url,
+      results: {
+        issues: formattedIssues,
+        summary: {
+          totalIssues,
+          high,
+          medium,
+          low,
+          score,
+        },
+      },
+    });
 
-res.json({
-  message: "Scan completed",
-  scan: newScan,
-});
+    await newScan.save();
+
+    res.json({
+      message: "Scan completed",
+      scan: newScan,
+    });
 
   } catch (error) {
-    console.log(error);
+    console.log("SCAN ERROR:", error);
     res.status(500).json({ message: "Scan failed" });
+
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 });
+
 
 // GET USER SCANS (History)
 router.get("/", authMiddleware, async (req, res) => {
