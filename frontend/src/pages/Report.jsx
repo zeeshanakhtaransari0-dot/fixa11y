@@ -20,7 +20,7 @@ function Report() {
   const fetchReport = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await axios.get(`http://localhost:5000/api/scan/${id}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/scan/${id}`, {
         headers: { Authorization: token },
       });
       setScan(res.data.scan);

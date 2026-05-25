@@ -110,7 +110,7 @@ function Dashboard() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/scan", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/scan`, {
         headers: { Authorization: token },
       });
       const scans = res.data.scans;

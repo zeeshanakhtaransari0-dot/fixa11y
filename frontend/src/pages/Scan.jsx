@@ -51,7 +51,7 @@ function Scan() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        "http://localhost:5000/api/scan",
+        `${import.meta.env.VITE_API_URL}/api/scan`,
         { url },
         { headers: { Authorization: token } }
       );
