@@ -2,7 +2,7 @@ import express from "express";
 import axe from "axe-core";
 import Scan from "../models/Scan.js";
 import authMiddleware from "../middleware/authMiddleware.js";
-import puppeteer from "puppeteer";
+import { chromium } from "playwright";
 
 
 
@@ -17,9 +17,15 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "URL is required" });
     }
 console.log("Launching browser...");
-   browser = await puppeteer.launch({
+const browser = await chromium.launch({
   headless: true,
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+});
+
+const page = await browser.newPage();
+
+await page.goto(url, {
+  waitUntil: "domcontentloaded",
+  timeout: 30000,
 });
 console.log("Browser launched");
     const page = await browser.newPage();

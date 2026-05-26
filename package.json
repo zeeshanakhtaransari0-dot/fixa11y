@@ -19,6 +19,6 @@
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "mongoose": "^9.6.2",
-    "puppeteer": "^19.11.1"
+    "playwright": "^1.60.0"
   }
 }
