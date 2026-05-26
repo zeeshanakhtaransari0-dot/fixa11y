@@ -86,10 +86,15 @@ await page.goto(url, {
       scan: newScan,
     });
 
-  } catch (error) {
-    console.log("SCAN ERROR:", error);
-    res.status(500).json({ message: "Scan failed" });
+  }
+  catch (error) {
+  console.error("FULL ERROR:", error);
+  console.error("STACK:", error.stack);
 
+  res.status(500).json({
+    message: "Scan failed",
+    error: error.message
+  });
   } finally {
     if (browser) {
       await browser.close();
