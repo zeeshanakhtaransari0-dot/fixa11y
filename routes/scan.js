@@ -17,6 +17,7 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "URL is required" });
     }
 console.log("Launching browser...");
+
 const browser = await chromium.launch({
   headless: true,
 });
@@ -27,13 +28,6 @@ await page.goto(url, {
   waitUntil: "domcontentloaded",
   timeout: 30000,
 });
-console.log("Browser launched");
-    const page = await browser.newPage();
-
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: 30000,
-    });
 
     await page.addScriptTag({
       content: axe.source,
